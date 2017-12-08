@@ -12,6 +12,7 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.lang.builder.ToStringBuilder;
@@ -132,46 +133,67 @@ public class Ssio {
 	 * @param <T>
 	 *            the java type of records
 	 */
-	public static <T> void saveIfNoDatumError(
-			Map<String, String> headerMap, Collection<T> records,
-			OutputStream outputStream, String datumErrPlaceholder,
-			List<DatumError> datumErrors) {
+	public static <T> void saveIfNoDatumError(Map<String, String> headerMap,
+			Collection<T> records, OutputStream outputStream,
+			String datumErrPlaceholder, List<DatumError> datumErrors) {
 		save(headerMap, records, outputStream, datumErrPlaceholder,
 				datumErrors, false);
 	}
 
 	/**
-	 * please check the doc of {@link #parse(Map, InputStream, List, Class)}.
-	 * The difference is that this class ignore any all the errors and make sure
-	 * no checked exception is thrown(There may still be unchecked exceptions,
-	 * though).
-	 * 
-	 * @param reverseHeaderMap
-	 *            {@code <headerText, propName>, for example <"User Name" as the spreadsheet header, "username" of User class>.}
-	 * @param inputStream
-	 *            the input stream of this spreadsheet
-	 * @param recordClass the class the java bean. It must have a default constructor
-	 * @param <T>
-	 *            the java type of records
-	 * @return a list of beans
+	 * Works like {@link #parse(Map, InputStream, List, Class)} to parse the
+	 * first sheet, except that it will just ignore parsing errors
 	 */
 	public static <T> List<T> parseIgnoringErrors(
 			Map<String, String> reverseHeaderMap, InputStream inputStream,
 			Class<T> recordClass) {
 		try {
 			return parse(reverseHeaderMap, inputStream, null, recordClass);
-		} catch (InvalidFormatException e1) {
-			// ignore
-			return new ArrayList<T>();
-		} catch (InvalidHeaderRowException e1) {
-			// ignore
-			return new ArrayList<T>();
+		} catch (InvalidFormatException | InvalidHeaderRowException e) {
+			return emptyParseResultAfterException(e);
 		}
-
 	}
 
 	/**
-	 * <p>parse an spreadsheet to a list of beans. </p> 
+	 * Works like {@link #parse(Map, InputStream, List, Class)} except that it
+	 * allows you select a sheet and will just ignore parsing errors
+	 * 
+	 * @throws IllegalArgumentException
+	 *             If the sheetIndex is out of bound
+	 */
+	public static <T> List<T> parseIgnoringErrors(int sheetIndex,
+			Map<String, String> reverseHeaderMap, InputStream inputStream,
+			Class<T> recordClass) {
+		try {
+			return parse(sheetIndex, reverseHeaderMap, inputStream, null,
+					recordClass);
+		} catch (InvalidFormatException | InvalidHeaderRowException e) {
+			return emptyParseResultAfterException(e);
+		}
+	}
+
+	/**
+	 * Works like {@link #parse(Map, InputStream, List, Class)} except that it
+	 * allows you select a sheet and will just ignore parsing errors
+	 * 
+	 * @throws IllegalArgumentException
+	 *             If the sheet with the give name doesn't exist
+	 */
+	public static <T> List<T> parseIgnoringErrors(String sheetName,
+			Map<String, String> reverseHeaderMap, InputStream inputStream,
+			Class<T> recordClass) {
+		try {
+			return parse(sheetName, reverseHeaderMap, inputStream, null,
+					recordClass);
+		} catch (InvalidFormatException | InvalidHeaderRowException e) {
+			return emptyParseResultAfterException(e);
+		}
+	}
+
+	/**
+	 * <p>
+	 * parse the first sheet of an spreadsheet to a list of beans.
+	 * </p>
 	 * The columns are not identified by the column indexes, but by the header
 	 * rows' text of the columns specified by parameter reverseHeaderMap , i.e.
 	 * you don't have to worry which column to put "username". All you need to
@@ -200,6 +222,77 @@ public class Ssio {
 			InputStream inputStream, List<CellError> cellErrors,
 			Class<T> recordClass) throws InvalidFormatException,
 			InvalidHeaderRowException {
+		int sheetIndex = 0;
+		return parse(sheetIndex, reverseHeaderMap, inputStream, cellErrors,
+				recordClass);
+	}
+
+	/**
+	 * <p>
+	 * parse the Nth sheet to a list of beans. It works like
+	 * {@link #parse(Map, InputStream, List, Class)} except that it allows you
+	 * to choose a sheet
+	 * </p>
+	 * 
+	 * @throws IllegalArgumentException
+	 *             If the sheetIndex is out of bound
+	 */
+	public static <T> List<T> parse(int sheetIndex,
+			Map<String, String> reverseHeaderMap, InputStream inputStream,
+			List<CellError> cellErrors, Class<T> recordClass)
+			throws InvalidFormatException, InvalidHeaderRowException,
+			IllegalArgumentException {
+		Function<Workbook, Sheet> selectSheetFunction = buildSelectSheetByIndexFunction(sheetIndex);
+		return doParse(selectSheetFunction, reverseHeaderMap, inputStream,
+				cellErrors, recordClass);
+	}
+
+	/**
+	 * <p>
+	 * parse the sheet with the given name to a list of beans. It works like
+	 * {@link #parse(Map, InputStream, List, Class) } except that it allows you
+	 * to choose a sheet
+	 * </p>
+	 * 
+	 * @throws IllegalArgumentException
+	 *             If the sheet with the give name doesn't exist
+	 */
+	public static <T> List<T> parse(String sheetName,
+			Map<String, String> reverseHeaderMap, InputStream inputStream,
+			List<CellError> cellErrors, Class<T> recordClass)
+			throws InvalidFormatException, InvalidHeaderRowException {
+		Function<Workbook, Sheet> selectSheetFunction = buildSelectSheetByNameFunction(sheetName);
+		return doParse(selectSheetFunction, reverseHeaderMap, inputStream,
+				cellErrors, recordClass);
+	}
+
+	private static Function<Workbook, Sheet> buildSelectSheetByIndexFunction(
+			int index) {
+		Function<Workbook, Sheet> selectSheetFunction = new Function<Workbook, Sheet>() {
+			@Override
+			public Sheet apply(Workbook workbook) {
+				return workbook.getSheetAt(index);
+			}
+		};
+		return selectSheetFunction;
+	}
+
+	private static Function<Workbook, Sheet> buildSelectSheetByNameFunction(
+			String name) {
+		Function<Workbook, Sheet> selectSheetFunction = new Function<Workbook, Sheet>() {
+			@Override
+			public Sheet apply(Workbook workbook) {
+				return workbook.getSheet(name);
+			}
+		};
+		return selectSheetFunction;
+	}
+
+	private static <T> List<T> doParse(
+			Function<Workbook, Sheet> selectSheetFunction,
+			Map<String, String> reverseHeaderMap, InputStream inputStream,
+			List<CellError> cellErrors, Class<T> recordClass)
+			throws InvalidFormatException, InvalidHeaderRowException {
 		validateReverseHeaderMap(reverseHeaderMap);
 
 		validateRecordClass(recordClass);
@@ -209,7 +302,7 @@ public class Ssio {
 			return new ArrayList<T>();
 		}
 
-		Sheet sheet = workbook.getSheetAt(0);
+		Sheet sheet = selectSheetFunction.apply(workbook);
 
 		// key = columnIndex, value= {propName, headerText}
 		Map<Short, ColumnMeta> columnMetaMap = parseHeader(reverseHeaderMap,
@@ -232,6 +325,11 @@ public class Ssio {
 		return records;
 	}
 
+	private static <T> List<T> emptyParseResultAfterException(Exception e) {
+		// ignore the exception
+		return new ArrayList<T>();
+	}
+
 	/**
 	 * save records to a new workbook.
 	 * 
@@ -252,10 +350,9 @@ public class Ssio {
 	 * 
 	 * 
 	 */
-	static <T> void save(Map<String, String> headerMap,
-			Collection<T> records, OutputStream outputStream,
-			String datumErrPlaceholder, List<DatumError> datumErrors,
-			boolean stillSaveIfDataError) {
+	static <T> void save(Map<String, String> headerMap, Collection<T> records,
+			OutputStream outputStream, String datumErrPlaceholder,
+			List<DatumError> datumErrors, boolean stillSaveIfDataError) {
 		validateHeaderMap(headerMap);
 
 		if (records == null) {
@@ -555,8 +652,7 @@ public class Ssio {
 		return columnMetaMap;
 	}
 
-	private static Row createHeaders(Map<String, String> headerMap,
-			Sheet sheet) {
+	private static Row createHeaders(Map<String, String> headerMap, Sheet sheet) {
 		CellStyle style = sheet.getWorkbook().createCellStyle();
 		style.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
 		style.setFillPattern(CellStyle.SOLID_FOREGROUND);
@@ -579,8 +675,8 @@ public class Ssio {
 		return header;
 	}
 
-	private static <T> Row createRow(Map<String, String> headerMap,
-			T record, int recordIndex, Sheet sheet, int rowIndex,
+	private static <T> Row createRow(Map<String, String> headerMap, T record,
+			int recordIndex, Sheet sheet, int rowIndex,
 			String datumErrPlaceholder, List<DatumError> datumErrors) {
 		Row row = sheet.createRow(rowIndex);
 		int columnIndex = 0;
