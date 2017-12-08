@@ -42,8 +42,8 @@ import org.sep4j.support.SepReflectionHelper;
 public class Ssio {
 
 	/**
-	 * save records to a new workbook even if there are datum errors in the
-	 * records. Any datum error will lead to an empty cell.
+	 * save records to a new Excel 2007 workbook(*.xlsx) even if there are datum
+	 * errors in the records. Any datum error will lead to an empty cell.
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
@@ -61,9 +61,9 @@ public class Ssio {
 	}
 
 	/**
-	 * save records to a new workbook even if there are datum errors in the
-	 * records. Any datum error will lead to {@code datumErrPlaceholder} being
-	 * written to the cell.
+	 * save records to a new Excel 2007 workbook(*.xlsx) even if there are datum
+	 * errors in the records. Any datum error will lead to
+	 * {@code datumErrPlaceholder} being written to the cell.
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
@@ -73,7 +73,8 @@ public class Ssio {
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell. Can be null. 
+	 *            if some datum is wrong, write this place holder to the cell.
+	 *            Can be null.
 	 * 
 	 * @param <T>
 	 *            the java type of records
@@ -86,10 +87,10 @@ public class Ssio {
 	}
 
 	/**
-	 * save records to a new workbook even if there are datum errors in the
-	 * records. Any datum error will lead to datumErrPlaceholder being written
-	 * to the cell. All the datum errors will be saved to {@code datumErrors}
-	 * indicating the recordIndex of the datum
+	 * save records to a new Excel 2007 workbook(*.xlsx) even if there are datum
+	 * errors in the records. Any datum error will lead to datumErrPlaceholder
+	 * being written to the cell. All the datum errors will be saved to
+	 * {@code datumErrors} indicating the recordIndex of the datum
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
@@ -98,10 +99,12 @@ public class Ssio {
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell. Can be null
+	 *            if some datum is wrong, write this place holder to the cell.
+	 *            Can be null
 	 * 
 	 * @param datumErrors
-	 *            all data errors in the records. If you don't care, pass in null
+	 *            all data errors in the records. If you don't care, pass in
+	 *            null
 	 * 
 	 * @param <T>
 	 *            the java type of records
@@ -114,9 +117,9 @@ public class Ssio {
 	}
 
 	/**
-	 * save records to a new workbook only if there are no datum errors in the
-	 * records. All the datum errors will be saved to {@code datumErrors}
-	 * indicating the recordIndex of the datum
+	 * save records to a new Excel 2007 workbook(*.xlsx) only if there are no
+	 * datum errors in the records. All the datum errors will be saved to
+	 * {@code datumErrors} indicating the recordIndex of the datum
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
@@ -125,7 +128,8 @@ public class Ssio {
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
 	 * @param datumErrors
-	 *            all data errors in the records. If you don't care, pass in null
+	 *            all data errors in the records. If you don't care, pass in
+	 *            null
 	 * 
 	 * @param <T>
 	 *            the java type of records
@@ -138,9 +142,9 @@ public class Ssio {
 	}
 
 	/**
-	 * Save records to a new workbook with a sheet name, and return the created
-	 * workbook object. You can use this returned workbook object to append more
-	 * sheets. See
+	 * Save records to a new Excel 2007 workbook(*.xlsx) with a sheet name, and
+	 * return the created workbook object. You can use this returned workbook
+	 * object to append more sheets. See
 	 * {@link #appendSheet(Map, Collection, Workbook, String, OutputStream, String, List, boolean)}
 	 * 
 	 * @param headerMap
@@ -153,9 +157,11 @@ public class Ssio {
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
 	 *            if some datum is wrong, write this place holder to the cell (
-	 *            {@code stillSaveIfDataError} has to true). This argument can be null.
+	 *            {@code stillSaveIfDataError} has to true). This argument can
+	 *            be null.
 	 * @param datumErrors
-	 *            all data errors in the records. If you don't care, pass in null
+	 *            all data errors in the records. If you don't care, pass in
+	 *            null
 	 * @param stillSaveIfDataError
 	 *            if there are errors in data, should the records still be
 	 *            saved?
@@ -174,8 +180,10 @@ public class Ssio {
 	}
 
 	/**
-	 * Save records to a sheet and append it to an existing workbook created by
+	 * Save records to a sheet and append it to an workbook object. This method
+	 * is usually combined with
 	 * {@link #saveAndGet(Map, Collection, String, OutputStream, String, List, boolean)}
+	 * to create a multiple-sheet Excel file.
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
@@ -191,9 +199,11 @@ public class Ssio {
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
 	 *            if some datum is wrong, write this place holder to the cell (
-	 *            {@code stillSaveIfDataError} has to true). This field can be null
+	 *            {@code stillSaveIfDataError} has to true). This field can be
+	 *            null
 	 * @param datumErrors
-	 *            all data errors in the records. If you don't care, pass in null
+	 *            all data errors in the records. If you don't care, pass in
+	 *            null
 	 * @param stillSaveIfDataError
 	 *            if there are errors in data, should the records still be
 	 *            saved?
