@@ -46,7 +46,7 @@ public class Ssio {
 	 * records. Any datum error will lead to an empty cell.
 	 * 
 	 * @param headerMap
-	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
+	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
 	 * @param records
 	 *            the records to save.
 	 * @param outputStream
@@ -57,50 +57,51 @@ public class Ssio {
 	 */
 	public static <T> void save(Map<String, String> headerMap,
 			Collection<T> records, OutputStream outputStream) {
-		save(headerMap, records, outputStream, null, null, true);
+		saveAndGet(headerMap, records, null, outputStream, null, null, true);
 	}
 
 	/**
 	 * save records to a new workbook even if there are datum errors in the
-	 * records. Any datum error will lead to datumErrPlaceholder being written
-	 * to the cell.
+	 * records. Any datum error will lead to {@code datumErrPlaceholder} being
+	 * written to the cell.
 	 * 
 	 * @param headerMap
-	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
+	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
 	 * 
 	 * @param records
 	 *            the records to save.
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell
-	 *            (stillSaveIfDataError should be set true)
+	 *            if some datum is wrong, write this place holder to the cell. Can be null. 
+	 * 
 	 * @param <T>
 	 *            the java type of records
 	 */
 	public static <T> void save(Map<String, String> headerMap,
 			Collection<T> records, OutputStream outputStream,
 			String datumErrPlaceholder) {
-		save(headerMap, records, outputStream, datumErrPlaceholder, null, true);
+		saveAndGet(headerMap, records, null, outputStream, datumErrPlaceholder,
+				null, true);
 	}
 
 	/**
 	 * save records to a new workbook even if there are datum errors in the
 	 * records. Any datum error will lead to datumErrPlaceholder being written
-	 * to the cell. All the datum errors will be saved to datumErrors indicating
-	 * the recordIndex of the datum
+	 * to the cell. All the datum errors will be saved to {@code datumErrors}
+	 * indicating the recordIndex of the datum
 	 * 
 	 * @param headerMap
-	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
+	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
 	 * @param records
 	 *            the records to save.
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
 	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell
-	 *            (stillSaveIfDataError should be set true)
+	 *            if some datum is wrong, write this place holder to the cell. Can be null
+	 * 
 	 * @param datumErrors
-	 *            all data errors in the records
+	 *            all data errors in the records. If you don't care, pass in null
 	 * 
 	 * @param <T>
 	 *            the java type of records
@@ -108,15 +109,14 @@ public class Ssio {
 	public static <T> void save(Map<String, String> headerMap,
 			Collection<T> records, OutputStream outputStream,
 			String datumErrPlaceholder, List<DatumError> datumErrors) {
-		save(headerMap, records, outputStream, datumErrPlaceholder,
+		saveAndGet(headerMap, records, null, outputStream, datumErrPlaceholder,
 				datumErrors, true);
 	}
 
 	/**
 	 * save records to a new workbook only if there are no datum errors in the
-	 * records. Any datum error will lead to datumErrPlaceholder being written
-	 * to the cell. All the datum errors will be saved to datumErrors indicating
-	 * the recordIndex of the datum
+	 * records. All the datum errors will be saved to {@code datumErrors}
+	 * indicating the recordIndex of the datum
 	 * 
 	 * @param headerMap
 	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
@@ -124,20 +124,118 @@ public class Ssio {
 	 *            the records to save.
 	 * @param outputStream
 	 *            the output stream for the spreadsheet
-	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell
-	 *            (stillSaveIfDataError should be set true)
 	 * @param datumErrors
-	 *            all data errors in the records
+	 *            all data errors in the records. If you don't care, pass in null
 	 * 
 	 * @param <T>
 	 *            the java type of records
 	 */
 	public static <T> void saveIfNoDatumError(Map<String, String> headerMap,
 			Collection<T> records, OutputStream outputStream,
-			String datumErrPlaceholder, List<DatumError> datumErrors) {
-		save(headerMap, records, outputStream, datumErrPlaceholder,
-				datumErrors, false);
+			List<DatumError> datumErrors) {
+		saveAndGet(headerMap, records, null, outputStream, null, datumErrors,
+				false);
+	}
+
+	/**
+	 * Save records to a new workbook with a sheet name, and return the created
+	 * workbook object. You can use this returned workbook object to append more
+	 * sheets. See
+	 * {@link #appendSheet(Map, Collection, Workbook, String, OutputStream, String, List, boolean)}
+	 * 
+	 * @param headerMap
+	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
+	 * @param records
+	 *            the records to save.
+	 * @param sheetName
+	 *            the name of the sheet. Can be null
+	 * @param outputStream
+	 *            the output stream for the spreadsheet
+	 * @param datumErrPlaceholder
+	 *            if some datum is wrong, write this place holder to the cell (
+	 *            {@code stillSaveIfDataError} has to true). This argument can be null.
+	 * @param datumErrors
+	 *            all data errors in the records. If you don't care, pass in null
+	 * @param stillSaveIfDataError
+	 *            if there are errors in data, should the records still be
+	 *            saved?
+	 * @return The created {@link XSSFWorkbook} object
+	 * 
+	 */
+	public static <T> XSSFWorkbook saveAndGet(Map<String, String> headerMap,
+			Collection<T> records, String sheetName, OutputStream outputStream,
+			String datumErrPlaceholder, List<DatumError> datumErrors,
+			boolean stillSaveIfDataError) {
+		XSSFWorkbook wb = new XSSFWorkbook();
+		saveSheet(headerMap, records, wb, sheetName, outputStream,
+				datumErrPlaceholder, datumErrors, stillSaveIfDataError);
+		return wb;
+
+	}
+
+	/**
+	 * Save records to a sheet and append it to an existing workbook created by
+	 * {@link #saveAndGet(Map, Collection, String, OutputStream, String, List, boolean)}
+	 * 
+	 * @param headerMap
+	 *            {@code <propName, headerText>, for example <"username" as field of User class, "User Name" as the spreadsheet header text>. }
+	 * 
+	 * @param records
+	 *            the records to save.
+	 * @param workbook
+	 *            the workbook you get from
+	 *            {@link #saveAndGet(Map, Collection, String, OutputStream, String, List, boolean)}
+	 * @param sheetName
+	 *            the name of the sheet. Can be null
+	 * @param outputStream
+	 *            the output stream for the spreadsheet
+	 * @param datumErrPlaceholder
+	 *            if some datum is wrong, write this place holder to the cell (
+	 *            {@code stillSaveIfDataError} has to true). This field can be null
+	 * @param datumErrors
+	 *            all data errors in the records. If you don't care, pass in null
+	 * @param stillSaveIfDataError
+	 *            if there are errors in data, should the records still be
+	 *            saved?
+	 * @return The created {@link XSSFWorkbook} object
+	 * 
+	 */
+	public static <T> XSSFWorkbook appendSheet(Map<String, String> headerMap,
+			Collection<T> records, XSSFWorkbook workbook, String sheetName,
+			OutputStream outputStream, String datumErrPlaceholder,
+			List<DatumError> datumErrors, boolean stillSaveIfDataError) {
+		saveSheet(headerMap, records, workbook, sheetName, outputStream,
+				datumErrPlaceholder, datumErrors, stillSaveIfDataError);
+		return workbook;
+	}
+
+	private static <T> void saveSheet(Map<String, String> headerMap,
+			Collection<T> records, XSSFWorkbook workbook, String sheetName,
+			OutputStream outputStream, String datumErrPlaceholder,
+			List<DatumError> datumErrors, boolean stillSaveIfDataError) {
+		validateHeaderMap(headerMap);
+		if (records == null) {
+			records = new ArrayList<T>();
+		}
+		if (outputStream == null) {
+			throw new IllegalArgumentException(
+					"the outputStream can not be null");
+		}
+
+		Sheet sheet = workbook.createSheet(sheetName);
+		createHeaders(headerMap, sheet);
+
+		int recordIndex = 0;
+		for (T record : records) {
+			int rowIndex = recordIndex + 1;
+			createRow(headerMap, record, recordIndex, sheet, rowIndex,
+					datumErrPlaceholder, datumErrors);
+			recordIndex++;
+		}
+
+		if (shouldSave(datumErrors, stillSaveIfDataError)) {
+			writeWorkbook(workbook, outputStream);
+		}
 	}
 
 	/**
@@ -328,58 +426,6 @@ public class Ssio {
 	private static <T> List<T> emptyParseResultAfterException(Exception e) {
 		// ignore the exception
 		return new ArrayList<T>();
-	}
-
-	/**
-	 * save records to a new workbook.
-	 * 
-	 * @param headerMap
-	 *            {@code <propName, headerText>, for example <"username" field of User class, "User Name" as the spreadsheet header text>. }
-	 * @param records
-	 *            the records to save.
-	 * @param outputStream
-	 *            the output stream for the spreadsheet
-	 * @param datumErrPlaceholder
-	 *            if some datum is wrong, write this place holder to the cell
-	 *            (stillSaveIfDataError should be set true)
-	 * @param datumErrors
-	 *            all data errors in the records
-	 * @param stillSaveIfDataError
-	 *            if there are errors in data, should we still save the records
-	 *            ?
-	 * 
-	 * 
-	 */
-	static <T> void save(Map<String, String> headerMap, Collection<T> records,
-			OutputStream outputStream, String datumErrPlaceholder,
-			List<DatumError> datumErrors, boolean stillSaveIfDataError) {
-		validateHeaderMap(headerMap);
-
-		if (records == null) {
-			records = new ArrayList<T>();
-		}
-		if (outputStream == null) {
-			throw new IllegalArgumentException(
-					"the outputStream can not be null");
-		}
-
-		Workbook wb = new XSSFWorkbook();
-		Sheet sheet = wb.createSheet();
-
-		createHeaders(headerMap, sheet);
-
-		int recordIndex = 0;
-		for (T record : records) {
-			int rowIndex = recordIndex + 1;
-			createRow(headerMap, record, recordIndex, sheet, rowIndex,
-					datumErrPlaceholder, datumErrors);
-			recordIndex++;
-		}
-
-		if (shouldSave(datumErrors, stillSaveIfDataError)) {
-			writeWorkbook(wb, outputStream);
-		}
-
 	}
 
 	/**

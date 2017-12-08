@@ -57,7 +57,7 @@ public class SsioIntegrationTest {
 		List<DatumError> datumErrors = new ArrayList<DatumError>();
 
 		// save it
-		Ssio.saveIfNoDatumError(headerMap, records, outputStream, null, datumErrors);
+		Ssio.saveIfNoDatumError(headerMap, records, outputStream, datumErrors);
 
 		byte[] spreadsheet = outputStream.toByteArray();
 		Assert.assertEquals(0, spreadsheet.length);
